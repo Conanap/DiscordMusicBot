@@ -59,10 +59,10 @@ client.on('message', async message => {
         return;
     }
 
-    if(!message.member.voice.channel) {
-        console.log(message.member.voice.channel);
-        return message.channel.send('You must be in a voice channel to send a Skynet command.');
-    }
+    // if(!message.member.voice.channel) {
+    //     console.log(message.member.voice.channel);
+    //     return message.channel.send('You must be in a voice channel to send a Skynet command.');
+    // }
 
     console.log("First argument: " + message.content.split(" ")[0]);
 
