@@ -84,7 +84,7 @@ client.on('message', async message => {
 
     if(!message.member.voice.channel) {
         console.log(message.member.voice.channel);
-        return message.channel.send('You must be in a voice channel to send a Skynet command.');
+        return message.channel.send('You must be in a voice channel to send a music related command to Veda.');
     }
 
     console.log("Log: command: " + message.content.split(" ")[0]);
