@@ -32,12 +32,12 @@ let dispatcher = undefined;
 let currentSong = undefined;
 
 let botFuncs = {};
-//botFuncs[`${prefix}h`] = botFuncs[`${prefix}help`] = help;
+botFuncs[`${prefix}h`] = botFuncs[`${prefix}help`] = help;
 botFuncs[`${prefix}play`] = execute;
 botFuncs[`${prefix}p`] = togglePlay;
 botFuncs[`${prefix}stop`] = botFuncs[`${prefix}pause`] = pause;
 botFuncs[`${prefix}skip`] = botFuncs[`${prefix}s`] = skip;
-botFuncs[`${prefix}resume`] = resume;
+botFuncs[`${prefix}resume`] = botFuncs[`${prefix}r`] = resume;
 
 let botState = states.DC;
 
@@ -56,10 +56,6 @@ client.on('message', async message => {
 
     if(message.author.bot) return;
 
-    if(!message.content.startsWith(prefix)) return;
-
-    const serverQueue = queue.get(message.guild.id);
-
     if(otPrefixes.indexOf(message.content.split(" ")[0][0]) !== -1) {
         return;
     }
@@ -68,10 +64,14 @@ client.on('message', async message => {
         console.log('Log: Message ignored: ', message.content);
         // remove message here
     }
-    
+
     if(Object.keys(botFuncs).indexOf(message.content.split(" ")[0]) === -1) {
         console.log('Error: Unrecognized command: ', message.content.split(" ")[0]);
         return message.channel.send('Unrecognized command: ' + message.content.split(" ")[0]);
+    }
+
+    if(message.content === `${prefix}h` || message.content === `${prefix}help`) {
+        return help(message, undefined);
     }
 
     if(!message.member.voice.channel) {
@@ -81,6 +81,7 @@ client.on('message', async message => {
 
     console.log("Log: command: " + message.content.split(" ")[0]);
 
+    const serverQueue = queue.get(message.guild.id);
     botFuncs[message.content.split(" ")[0]](message, serverQueue);
 });
 
@@ -224,3 +225,33 @@ function resume(message, serverQueue) {
     console.log('Error: Dispatcher not found.');
     return serverQueue.textChannel.send('Error: Unable to complete action. Please report this to the administrator: Dispatcher not found.');
 }
+
+// help
+function help (message, serverQueue) {
+    const helpMsg =
+`Hello! I am Veda. These are my current functionalities:
+    - Play music.
+
+My command prefix is '-'.
+
+Documentation notes:
+    - [...] denotes optional arguments.
+    - Capitalization denotes required arguments.
+    - \`...\` denotes a command.
+
+These are the available commands:
+    - play NAME: search Youtube for NAME and play the top result.
+    - resume: resumes playback.
+    - skip: skip current song.
+    - help: shows this help message.
+
+Shorthands (If you get confused, use above full commands):
+    - p NAME: same as \`play NAME\`.
+    - p: resume or pause music.
+    - r: resumes playback.
+    - s: same as \`skip\`.
+    - h: same as \`help\`.
+`;
+
+    return message.channel.send(helpMsg);
+};  
