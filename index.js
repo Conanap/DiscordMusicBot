@@ -41,7 +41,7 @@ client.once('ready', () => { console.log('Ready'); console.log(`Prefix: ${prefix
 
 client.once('reconnecting', () => { console.log('Reconnecting...'); });
 
-client.once('disconnect', () => { console.log('Disconnected'); });
+client.once('disconnect', () => { console.log('Disconnected'); botState = states.DC; });
 
 client.on('message', async message => {
 
@@ -73,11 +73,6 @@ async function execute(message, serverQueue) {
     console.log('Play command received; not toggle.');
 
     const args = message.content.split(" ");
-
-    if(!message.member.voice.channel) {
-        // join channel here
-    }
-
     const permissions = message.member.voice.channel.permissionsFor(message.client.user);
 
     if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
@@ -126,6 +121,7 @@ async function enqueue(response, message, serverQueue) {
     
         try {
             var connection = await message.member.voice.channel.join();
+            botState = states.CONNECTED;
             queueContruct.connection = connection;
             play(message.guild, queueContruct.songs[0]);
         } catch (err) {
@@ -161,4 +157,5 @@ function play(guild, song) {
         .on("error", error => console.error(error));
     dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
     serverQueue.textChannel.send(`Now playing: ${song.title}`);
+    botState = states.PLAYING;
 };
