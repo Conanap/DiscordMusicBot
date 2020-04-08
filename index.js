@@ -1,12 +1,21 @@
+const args = process.argv.slice(2);
+const isDev = args.indexOf('-dev') === -1 ? false : true;
+const isDebug = args.indexOf('-debug') === -1 ? false : true;
+
 const ytdl = require('ytdl-core');
 const Discord = require('discord.js');
-const {
+let {
     prefix,
-    token
+    developerPrefix,
+    token,
+    developerToken
 } = require('./config.json');
 
+const otPrefixes = ['!', '>', isDev ? prefix : developerPrefix];
+prefix = isDev ? developerPrefix : prefix;
+
 const client = new Discord.Client();
-client.login(token);
+isDev ? client.login(developerToken) : client.login(token);
 
 const fetch = require("node-fetch");
 const apiKey = "AIzaSyAHrrwsRNbBIGELxhlu9qZwdT5NImBSbDE";
@@ -26,7 +35,6 @@ const states = {
     PLAYING: 2,
     PAUSED: 3
 };
-const otPrefixes = ['!', '>'];
 
 let dispatcher = undefined;
 let currentSong = undefined;
@@ -43,7 +51,7 @@ let botState = states.DC;
 
 const queue = new Map();
 
-client.once('ready', () => { console.log('Status: Ready'); console.log(`Prefix: ${prefix}`); });
+client.once('ready', () => { console.log('Status: Ready'); console.log(`Prefix: ${prefix}`); isDev ? console.log('DEVELOPER VEDA') : 1; });
 
 client.once('reconnecting', () => { console.log('Status: Reconnecting...'); });
 
@@ -61,8 +69,8 @@ client.on('message', async message => {
     }
 
     if(message.content.split(" ")[0][0] !== `${prefix}`) {
-        console.log('Log: Message ignored: ', message.content);
-        // remove message here
+        console.log('Log: Message deleted: ', message.content);
+        return message.delete();
     }
 
     if(Object.keys(botFuncs).indexOf(message.content.split(" ")[0]) === -1) {
