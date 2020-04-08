@@ -20,33 +20,39 @@ function sendReq(query, message, serverQueue) {
         .then(res=>{enqueue(res, message, serverQueue)});
 };
 
-let states = {
+const states = {
     DC: 0,
     CONNECTED: 1,
     PLAYING: 2,
     PAUSED: 3
 };
+const otPrefixes = ['!', '>'];
+
+let dispatcher = undefined;
+let currentSong = undefined;
 
 let botFuncs = {};
 //botFuncs[`${prefix}h`] = botFuncs[`${prefix}help`] = help;
 botFuncs[`${prefix}play`] = execute;
-//botFuncs[`${prefix}p`] = togglePlay;
-//botFuncs[`${prefix}stop`] = botFuncs[`${prefix}pause`] = pause;
+botFuncs[`${prefix}p`] = togglePlay;
+botFuncs[`${prefix}stop`] = botFuncs[`${prefix}pause`] = pause;
+botFuncs[`${prefix}skip`] = botFuncs[`${prefix}s`] = skip;
+botFuncs[`${prefix}resume`] = resume;
 
 let botState = states.DC;
 
 const queue = new Map();
 
-client.once('ready', () => { console.log('Ready'); console.log(`Prefix: ${prefix}`); });
+client.once('ready', () => { console.log('Status: Ready'); console.log(`Prefix: ${prefix}`); });
 
-client.once('reconnecting', () => { console.log('Reconnecting...'); });
+client.once('reconnecting', () => { console.log('Status: Reconnecting...'); });
 
-client.once('disconnect', () => { console.log('Disconnected'); botState = states.DC; });
+client.once('disconnect', () => { console.log('Status: Disconnected'); botState = states.DC; });
 
 client.on('message', async message => {
 
-    console.log('Message: ' + message.content);
-    console.log("First argument: " + message.content.split(" ")[0] + " ," + message.content.split(" ")[0].length);
+    console.log('Log: Message: ' + message.content);
+    console.log("Log: First argument: " + message.content.split(" ")[0] + " ," + message.content.split(" ")[0].length);
 
     if(message.author.bot) return;
 
@@ -54,9 +60,18 @@ client.on('message', async message => {
 
     const serverQueue = queue.get(message.guild.id);
 
-    if(message.content.split(" ")[0][0] !== `${prefix}` || Object.keys(botFuncs).indexOf(message.content.split(" ")[0]) === -1) {
-        console.log('invalid command received: ', message.content.split(" ")[0]);
+    if(otPrefixes.indexOf(message.content.split(" ")[0][0]) !== -1) {
         return;
+    }
+
+    if(message.content.split(" ")[0][0] !== `${prefix}`) {
+        console.log('Log: Message ignored: ', message.content);
+        // remove message here
+    }
+    
+    if(Object.keys(botFuncs).indexOf(message.content.split(" ")[0]) === -1) {
+        console.log('Error: Unrecognized command: ', message.content.split(" ")[0]);
+        return message.channel.send('Unrecognized command: ' + message.content.split(" ")[0]);
     }
 
     if(!message.member.voice.channel) {
@@ -64,18 +79,19 @@ client.on('message', async message => {
         return message.channel.send('You must be in a voice channel to send a Skynet command.');
     }
 
-    console.log("First argument: " + message.content.split(" ")[0]);
+    console.log("Log: command: " + message.content.split(" ")[0]);
 
     botFuncs[message.content.split(" ")[0]](message, serverQueue);
 });
 
 async function execute(message, serverQueue) {
-    console.log('Play command received; not toggle.');
+    console.log('Status: Play command received; not toggle.');
 
     const args = message.content.split(" ");
     const permissions = message.member.voice.channel.permissionsFor(message.client.user);
 
     if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
+        console.log('Error: No permission to connect or speak.');
         return message.channel.send(
           "I need the permissions to join and speak in your voice channel!"
         );
@@ -86,7 +102,7 @@ async function execute(message, serverQueue) {
 };
 
 async function enqueue(response, message, serverQueue) {
-    console.log('Enqueue.');
+    console.log('Status: Enqueue.');
 
     const results = response.items;
     if(results.length === 0) {
@@ -94,17 +110,17 @@ async function enqueue(response, message, serverQueue) {
     }
 
     const vID = results[0].id.videoId;
-    console.log('Getting video from vID');
+    console.log('Log: Getting video from vID');
     const songInfo = await ytdl.getInfo(vurl + vID);
     const song = {
         title: songInfo.title,
         url: songInfo.video_url
     }
 
-    console.log('Server queue check');
+    console.log('Log: Server queue check');
 
     if(!serverQueue) {
-        console.log('Creating server queue');
+        console.log('Log: Creating server queue');
 
         const queueContruct = {
             textChannel: message.channel,
@@ -130,7 +146,7 @@ async function enqueue(response, message, serverQueue) {
             return message.channel.send(err);
         }
     } else {
-        console.log('Adding to server queue');
+        console.log('Log: Adding to server queue');
         serverQueue.songs.push(song);
         console.log(serverQueue.songs);
         return message.channel.send(`${song.title} has been added to the queue.`);
@@ -138,7 +154,9 @@ async function enqueue(response, message, serverQueue) {
 };
 
 function play(guild, song) {
-    console.log('Playing audio');
+    console.log('Status: Playing audio');
+
+    currentSong = song;
 
     const serverQueue = queue.get(guild.id);
     if(!song) {
@@ -148,7 +166,7 @@ function play(guild, song) {
     }
 
     console.log(song.url);
-    const dispatcher = serverQueue.connection
+    dispatcher = serverQueue.connection
         .play(ytdl(song.url, { filter: 'audioonly'}))
         .on("finish", () => {
         serverQueue.songs.shift();
@@ -159,3 +177,50 @@ function play(guild, song) {
     serverQueue.textChannel.send(`Now playing: ${song.title}`);
     botState = states.PLAYING;
 };
+
+function skip(message, serverQueue) {
+    if (!serverQueue)
+        return message.channel.send('The queue is already clear.');
+    serverQueue.connection.dispatcher.end();
+    dispatcher = undefined;
+};
+
+function togglePlay(message, serverQueue) {
+    if(message.content.split(" ").length > 1) {
+        execute(message, serverQueue);
+    } else if(botState === states.PAUSED) {
+        resume(message, serverQueue);
+    } else if(botState === states.PLAYING) {
+        pause(message, serverQueue);
+    }
+};
+
+function pause(message, serverQueue) {
+    if(botState !== states.PLAYING) {
+        return serverQueue.textChannel.send('Cannot pause when no music is being played.');
+    }
+
+    if(dispatcher) {
+        dispatcher.pause();
+        botState = states.PAUSED;
+        console.log('Status: Paused playback.');
+        return serverQueue.textChannel.send(`Paused.`);
+    }
+    console.log('Error: Dispatcher not found.');
+    return serverQueue.textChannel.send('Error: Unable to complete action. Please report this to the administrator: Dispatcher not found.');
+};
+
+function resume(message, serverQueue) {
+    if(botState !== states.PAUSED) {
+        return serverQueue.textChannel.send('Cannot resume playback when no music has been paused.');
+    }
+
+    if(dispatcher) {
+        botState = states.PLAYING;
+        dispatcher.resume();
+        console.log('Status: Resumed playing.');
+        return serverQueue.textChannel.send(`Resumed playing: ${currentSong.title}`);
+    }
+    console.log('Error: Dispatcher not found.');
+    return serverQueue.textChannel.send('Error: Unable to complete action. Please report this to the administrator: Dispatcher not found.');
+}
