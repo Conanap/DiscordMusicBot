@@ -155,7 +155,8 @@ async function execute(message, serverQueue) {
     }
 
     // get cached if possible
-    let res = await bpq.get(message.content);
+    // remove the command part of the string as it will lower score unecessarily
+    let res = await bpq.get(message.content.substring(message.content.indexOf(' ') + 1));
     if(res) {
         if(isDebug) console.log('DEBUG: cache match found.');
         res.isCached = true;
