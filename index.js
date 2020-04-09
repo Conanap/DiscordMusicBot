@@ -50,14 +50,16 @@ const client = new Discord.Client();
 isDev ? client.login(developerToken) : client.login(token);
 
 const fetch = require("node-fetch");
-const url = "https://www.googleapis.com/youtube/v3/search?part=id&key=" + apiKey + "&q=";
+const url = "https://www.googleapis.com/youtube/v3/search?part=id&type=video&key=" + apiKey + "&q=";
 const vurl = "https:www.youtube.com/watch?v=";
 
-function sendReq(query, message, serverQueue) {
+function sendReq(query, message, serverQueue, func = undefined) {
     console.log("fetching results");
     fetch(url + query)
         .then(data=>{ return data.json();})
-        .then(res=>{enqueue(res, message, serverQueue)});
+        .then(res=>{
+            func ? func(message, serverQueue) : enqueue(res, message, serverQueue);
+        });
 };
 
 const states = {
@@ -69,6 +71,7 @@ const states = {
 
 let dispatcher = undefined;
 let currentSong = undefined;
+let recentRequestPerUser = {};
 
 let botFuncs = {};
 botFuncs[`${prefix}h`] = botFuncs[`${prefix}help`] = help;
@@ -77,12 +80,18 @@ botFuncs[`${prefix}p`] = togglePlay;
 botFuncs[`${prefix}stop`] = botFuncs[`${prefix}pause`] = pause;
 botFuncs[`${prefix}skip`] = botFuncs[`${prefix}s`] = skip;
 botFuncs[`${prefix}resume`] = botFuncs[`${prefix}r`] = resume;
+botFuncs[`${prefix}wrong`] = botFuncs[`${prefix}w`] = wrongResult;
 
 let botState = states.DC;
 
 const queue = new Map();
 
-client.once('ready', () => { console.log('Status: Ready'); console.log(`Prefix: ${prefix}`); isDev ? console.log('DEVELOPER VEDA') : 1; });
+client.once('ready', () => {
+    console.log('Status: Ready');
+    console.log(`Prefix: ${prefix}`);
+    isDev ? console.log('DEVELOPER VEDA') : 1;
+    isDebug ? console.log('DEBUG MODE ON') : 1;
+});
 
 client.once('reconnecting', () => { console.log('Status: Reconnecting...'); });
 
@@ -144,18 +153,19 @@ async function execute(message, serverQueue) {
 async function enqueue(response, message, serverQueue) {
     console.log('Status: Enqueue.');
 
-    const results = response.items;
+    let results = response.items;
     if(results.length === 0) {
         return message.channel.send('No matching query found.');
     }
 
     const vID = results[0].id.videoId;
-    console.log('Log: Getting video from vID');
-    const songInfo = await ytdl.getInfo(vurl + vID);
-    const song = {
-        title: songInfo.title,
-        url: songInfo.video_url
-    }
+    const song = await getSong(message, vID, 0);
+
+    recentRequestPerUser[song.requester] = {
+        results: results,
+        wrongCount: 0,
+        song: song
+    };
 
     console.log('Log: Server queue check');
 
@@ -188,13 +198,21 @@ async function enqueue(response, message, serverQueue) {
     } else {
         console.log('Log: Adding to server queue');
         serverQueue.songs.push(song);
-        console.log(serverQueue.songs);
+        
+        if(isDebug) console.log(serverQueue.songs);
+
         return message.channel.send(`${song.title} has been added to the queue.`);
     }
 };
 
 function play(guild, song) {
     console.log('Status: Playing audio');
+
+    // last song they requested, no longer need to keep track
+    if(recentRequestPerUser[song.requester].results[song.wrongCount].id.videoId
+        === song.vID) {
+        delete recentRequestPerUser[song.requester];
+    }
 
     currentSong = song;
 
@@ -209,8 +227,8 @@ function play(guild, song) {
     dispatcher = serverQueue.connection
         .play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }))
         .on("finish", () => {
-        serverQueue.songs.shift();
-        play(guild, serverQueue.songs[0]);
+            serverQueue.songs.shift();
+            play(guild, serverQueue.songs[0]);
         })
         .on("error", error => console.error(error));
     dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
@@ -265,6 +283,56 @@ function resume(message, serverQueue) {
     return serverQueue.textChannel.send('Error: Unable to complete action. Please report this to the administrator: Dispatcher not found.');
 }
 
+async function wrongResult(message, serverQueue) {
+    let songInfo = recentRequestPerUser[message.author.toString()];
+    let wrongCount = songInfo.wrongCount + 1 === songInfo.results.length ?
+        0 : songInfo.wrongCount + 1;
+
+    const song = songInfo.song;
+    if(isDebug) {
+        console.log(songInfo);
+        console.log(wrongCount);
+        console.log(songInfo.results[wrongCount].id);
+    }
+    const newSong = await getSong(message, songInfo.results[wrongCount].id.videoId, wrongCount);
+    songInfo.wrongCount = wrongCount;
+
+    replaceSong(song, newSong, serverQueue);
+
+    if(isDebug) {
+        console.log(`old id ${song.vID} and new id ${newSong.vID}`);
+    }
+    return message.channel.send(`${song.title} replaced by ${newSong.title}`);
+};
+
+function replaceSong(song, newSong, serverQueue) {
+    const index = serverQueue.songs.map(function(e) {return song.vID})
+    .indexOf(song.vID);
+    if(isDebug) {
+        console.log('DEBUG: replacing song');
+        console.log('DEBUG: Index: ', index)
+        console.log('DEBUG: old song: ', serverQueue[index]);
+    }
+    serverQueue[index] = newSong;
+    if(isDebug) {
+        console.log('DEBUG: new song', serverQueue[index]);
+    }
+};
+
+async function getSong(message, vID, resultID) {
+    console.log('Log: Getting video from vID ' + vID);
+    const songInfo = await ytdl.getInfo(vurl + vID);
+    const song = {
+        title: songInfo.title,
+        url: songInfo.video_url,
+        vID: vID,
+        requester: message.author.toString(),
+        wrongCount: resultID
+    };
+
+    return song;
+};
+
 // help
 function help (message, serverQueue) {
     const helpMsg =
@@ -280,6 +348,7 @@ Documentation notes:
 
 These are the available commands:
     - play NAME: search Youtube for NAME and play the top result.
+    - play URL: Go to Youtube URL and play that video.
     - resume: resumes playback.
     - skip: skip current song.
     - help: shows this help message.
@@ -293,4 +362,4 @@ Shorthands (If you get confused, use above full commands):
 `;
 
     return message.channel.send(helpMsg);
-};  
+};
