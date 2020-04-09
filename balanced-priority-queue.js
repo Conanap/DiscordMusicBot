@@ -1,4 +1,19 @@
-// Balanced Priority Queue
+/*
+Balanced Priority Queue
+
+Written by Albion Fung
+
+This is a priority queue based on number of playbacks (pCount).
+Every Time addSong is called, the corresponding song's count is
+incremented 1. When all 100 cache slots fill up, we reduce pCount
+proportionally based on the last time the song was played; the
+longer ago it was played, the more the count is decreased. We then
+remove the 30 least count elements and a new slot opens up.
+
+The weights should be played with to acheive the accuracy you desire.
+
+Requires fuzzyset.js: https://glench.github.io/fuzzyset.js/
+*/
 
 const fuzzySet = require('fuzzyset.js');
 
