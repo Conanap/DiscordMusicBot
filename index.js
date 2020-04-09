@@ -87,6 +87,8 @@ botFuncs[`${prefix}UwUops`] = wongWesults;
 let botState = states.DC;
 
 const queue = new Map();
+const BalPriorityQueue = require('./balanced-priority-queue.js');
+const bpq = new BalPriorityQueue(isDebug);
 
 client.once('ready', () => {
     console.log('Status: Ready');
@@ -101,7 +103,7 @@ client.once('disconnect', () => { console.log('Status: Disconnected'); botState 
 
 client.on('message', async message => {
 
-    console.log('Log: Message: ' + message.content);
+    console.log('\n\n\nLog: Message: ' + message.content);
     console.log("Log: First argument: " + message.content.split(" ")[0] + " ," + message.content.split(" ")[0].length);
 
     if(message.author.bot) return;
@@ -148,7 +150,16 @@ async function execute(message, serverQueue) {
         );
     }
 
-    sendReq(args.slice(1, args.length + 1).join('+'), message, serverQueue);
+    // get cached if possible
+    let res = await bpq.get(message.content);
+    if(res) {
+        res.isCached = true;
+        enqueue({items: [res]}, message, serverQueue);
+        return;
+    } else {
+        console.log('DEBUG: cannot find cache match.');
+        sendReq(args.slice(1, args.length + 1).join('+'), message, serverQueue);
+    }
 
 };
 
@@ -156,14 +167,22 @@ async function enqueue(response, message, serverQueue) {
     console.log('Status: Enqueue.');
 
     let results = response.items;
-    if(isDebug) console.log(results);
+    if(isDebug) console.log('DEBUG: Results in enqueue ', results);
     if(!results || results.length === 0) {
         return message.channel.send('No matching query found.');
     }
 
-    const vID = results[0].id.videoId;
-    const song = await getSong(message, vID, 0);
+    let song;
+    if(results[0].isCached) {
+        song = results[0];
+        song.requester = message.author.toString();
+        song.wrongCount = 0;
+    } else {
+        const vID = results[0].id.videoId;
+        song = await getSong(message, vID, 0);
+    }
 
+    bpq.addSong(song);
     recentRequestPerUser[song.requester] = {
         results: results,
         wrongCount: 0,
@@ -317,7 +336,7 @@ async function wongWesults(message, serverQueue) {
 };
 
 function replaceSong(song, newSong, serverQueue) {
-    const index = serverQueue.songs.map(function(e) {return song.vID})
+    const index = serverQueue.songs.map(function(e) { return song.vID; })
     .indexOf(song.vID);
     if(isDebug) {
         console.log('DEBUG: replacing song');
