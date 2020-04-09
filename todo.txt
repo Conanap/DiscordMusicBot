@@ -1,0 +1,7 @@
+// TODO: (In order of priority)
+1. Now playing (with Youtube link) (easy)
+2. List queue (easy)
+3. Check for non-music related commands that you don't need to be in a music channel to use (easy)
+4. roll dice (easy)
+5. Loop queue (easy)
+6. Remove from queue (easy) - req #2
