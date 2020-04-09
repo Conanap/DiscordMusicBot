@@ -80,7 +80,8 @@ botFuncs[`${prefix}p`] = togglePlay;
 botFuncs[`${prefix}stop`] = botFuncs[`${prefix}pause`] = pause;
 botFuncs[`${prefix}skip`] = botFuncs[`${prefix}s`] = skip;
 botFuncs[`${prefix}resume`] = botFuncs[`${prefix}r`] = resume;
-botFuncs[`${prefix}wrong`] = botFuncs[`${prefix}w`] = wrongResult;
+botFuncs[`${prefix}oops`] = botFuncs[`${prefix}o`] = wrongResult;
+botFuncs[`${prefix}UwUops`] = wongWesults;
 
 let botState = states.DC;
 
@@ -285,6 +286,9 @@ function resume(message, serverQueue) {
 
 async function wrongResult(message, serverQueue) {
     let songInfo = recentRequestPerUser[message.author.toString()];
+    if(!songInfo) {
+        return message.channel.send('No song queued.');
+    }
     let wrongCount = songInfo.wrongCount + 1 === songInfo.results.length ?
         0 : songInfo.wrongCount + 1;
 
@@ -303,6 +307,11 @@ async function wrongResult(message, serverQueue) {
         console.log(`old id ${song.vID} and new id ${newSong.vID}`);
     }
     return message.channel.send(`${song.title} replaced by ${newSong.title}`);
+};
+
+async function wongWesults(message, serverQueue) {
+    message.channel.send('"You weeb" - Declan 2020');
+    wrongResult(message, serverQueue);
 };
 
 function replaceSong(song, newSong, serverQueue) {
@@ -348,10 +357,11 @@ Documentation notes:
 
 These are the available commands:
     - play NAME: search Youtube for NAME and play the top result.
-    - play URL: Go to Youtube URL and play that video.
+    - play URL: go to Youtube URL and play that video.
     - resume: resumes playback.
     - skip: skip current song.
     - help: shows this help message.
+    - oops: search for the next best result for **your** last query if songbot queues the wrong song. Only works before it's played.
 
 Shorthands (If you get confused, use above full commands):
     - p NAME: same as \`play NAME\`.
@@ -359,6 +369,7 @@ Shorthands (If you get confused, use above full commands):
     - r: resumes playback.
     - s: same as \`skip\`.
     - h: same as \`help\`.
+    - o: same as \`wrong\`.
 `;
 
     return message.channel.send(helpMsg);
