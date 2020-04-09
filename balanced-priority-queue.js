@@ -190,7 +190,11 @@ class BalancedPriorityQueue {
             if(ass)
                 ass = ass[0][0];
 
-            ret = ts > 0.5 && (!ass || ass > 0.5);
+            // weight need to account for str len (eg if short title, it might not match)
+            // weight / (title / sole string length) because we want it to increase score if
+            // title is short (shorter title = smaller score)
+            // which is = weight * sole / title
+            ret = ts > ( 0.5 * sole1.length / ot.title.length ) && (!ass || ass > ( 0.5 * sole1.length / ot.title.length ));
             if(this.debug) console.log('BPQ DEBUG: ret ', ret);
             return ret;
         }

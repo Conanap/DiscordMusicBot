@@ -110,10 +110,12 @@ client.on('message', async message => {
 
     if(message.author.bot) return;
 
+    // ignore messages meant for other bots
     if(otPrefixes.indexOf(message.content.split(" ")[0][0]) !== -1) {
         return;
     }
 
+    // messages not meant for other bots or myself will be deleted
     if(message.content.split(" ")[0][0] !== `${prefix}`) {
         console.log('Log: Message deleted: ', message.content);
         return message.delete();
@@ -155,6 +157,7 @@ async function execute(message, serverQueue) {
     // get cached if possible
     let res = await bpq.get(message.content);
     if(res) {
+        if(isDebug) console.log('DEBUG: cache match found.');
         res.isCached = true;
         enqueue({items: [res]}, message, serverQueue);
         return;
@@ -174,6 +177,7 @@ async function enqueue(response, message, serverQueue) {
         return message.channel.send('No matching query found.');
     }
 
+    // get song properties
     let song;
     if(results[0].isCached) {
         song = results[0];
