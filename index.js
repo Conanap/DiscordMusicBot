@@ -210,7 +210,7 @@ function play(guild, song) {
     console.log('Status: Playing audio');
 
     // last song they requested, no longer need to keep track
-    if(recentRequestPerUser[song.requester].results[song.wrongCount].id.videoId
+    if(song && recentRequestPerUser[song.requester].results[song.wrongCount].id.videoId
         === song.vID) {
         delete recentRequestPerUser[song.requester];
     }
