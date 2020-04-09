@@ -43,3 +43,13 @@ You may freely distribute and use my code as long as your code is:
    
    Note: highWaterMark in ytdl's call gives it 32MB of buffer. If that's too much, please change it
    manually for your use case.
+   
+__________________________________________________________________________________________________________
+Change Log:
+   
+   v1.1 - 8 Apr, 2020
+   - Allow users to select the next best result from their last query if the songbot didn't pick the right one.
+   - Fixed a bug where no results or error response from Youtube API crashes the bot.
+   
+   v1.0 - 8 Apr, 2020
+   - Initial release.
