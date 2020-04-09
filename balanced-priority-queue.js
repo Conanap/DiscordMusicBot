@@ -19,10 +19,14 @@ const fuzzySet = require('fuzzyset.js');
 
 class BalancedPriorityQueue {
 
-    constructor(debug) {
+    constructor(cache, debug) {
         this.pq = [];
         this.DAY = 86400000;
         this.debug = debug;
+
+        if(cache) {
+            this.pq = cache.pq;
+        }
     };
 
     addSong(song) {
@@ -213,6 +217,10 @@ class BalancedPriorityQueue {
         ret = ts && ass;
         if(this.debug) console.log('BPQ DEBUG: ret ', ret);
         return ret;
+    };
+
+    getCacheForSave() {
+        return this.pq;
     };
 };
 

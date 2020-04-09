@@ -43,7 +43,8 @@ let {
     developerPrefix,
     token,
     developerToken,
-    apiKey
+    apiKey,
+    BPQ_PATH
 } = require('./config.json');
 
 const otPrefixes = ['!', '>', isDev ? prefix : developerPrefix];
@@ -65,11 +66,53 @@ function sendReq(query, message, serverQueue, func = undefined) {
         });
 };
 
+const fs = require('fs');
+
+const queue = new Map();
+const BalPriorityQueue = require('./balanced-priority-queue.js');
+const bpq;
+
+if(process.platform === "win32") {
+    const rl = require('readline').createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+
+    rl.on("SIGINT", function() {
+        botState = states.EXITING;
+        process.emit("SIGINT");
+    });
+}
+
+process.on("SIGINT", function() {
+    botState = states.EXITING;
+    saveCache(BPQ_PATH);
+    process.exit();
+});
+
+function saveCache(BPQ_PATH) {
+    const cache = {
+        pq: JSON.stringify(bpq.getCacheForSave())
+    };
+
+    fs.writeFileSync(BPQ_PATH, cache);
+
+    process.exit();
+};
+
+function loadCache(BPQ_PATH) {
+    let data = undefined;
+    if(fs.existsSync(BPQ_PATH))
+        data = JSON.parse(fs.readFileSync(BPQ_PATH));
+    bpq  = new BalPriorityQueue(data, isDebug);
+};
+
 const states = {
     DC: 0,
     CONNECTED: 1,
     PLAYING: 2,
-    PAUSED: 3
+    PAUSED: 3,
+    EXITING: 4,
 };
 
 let dispatcher = undefined;
@@ -88,9 +131,7 @@ botFuncs[`${prefix}UwUops`] = wongWesults;
 
 let botState = states.DC;
 
-const queue = new Map();
-const BalPriorityQueue = require('./balanced-priority-queue.js');
-const bpq = new BalPriorityQueue(isDebug);
+loadCache(BPQ_PATH);
 
 client.once('ready', () => {
     console.log('Status: Ready');
@@ -119,6 +160,10 @@ client.on('message', async message => {
     if(message.content.split(" ")[0][0] !== `${prefix}`) {
         console.log('Log: Message deleted: ', message.content);
         return message.delete();
+    }
+
+    if(botState === states.EXITING) {
+        return message.channel.send('Veda is currently shutting down and cannot take any commands.');
     }
 
     if(Object.keys(botFuncs).indexOf(message.content.split(" ")[0]) === -1) {
