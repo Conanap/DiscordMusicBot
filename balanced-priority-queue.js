@@ -161,7 +161,7 @@ class BalancedPriorityQueue {
         if(sole1 && sole2) {
             ret = fuzzySet([sole1]).get(sole2);
             if(ret)
-                ret = ret[0][0] > 0.7;
+                ret = ret[0][0] > 0.6;
             else
                 ret = false;
 
