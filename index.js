@@ -57,7 +57,7 @@ function sendReq(query, message, serverQueue, func = undefined) {
     console.log("fetching results");
     fetch(url + query)
         .then(data=>{ return data.json();})
-        .then(res=>{
+        .then(res=>{ if(isDebug) console.log(res);
             func ? func(message, serverQueue) : enqueue(res, message, serverQueue);
         });
 };
@@ -155,7 +155,8 @@ async function enqueue(response, message, serverQueue) {
     console.log('Status: Enqueue.');
 
     let results = response.items;
-    if(results.length === 0) {
+    if(isDebug) console.log(results);
+    if(!results || results.length === 0) {
         return message.channel.send('No matching query found.');
     }
 
