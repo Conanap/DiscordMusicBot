@@ -70,7 +70,7 @@ const fs = require('fs');
 
 const queue = new Map();
 const BalPriorityQueue = require('./balanced-priority-queue.js');
-const bpq;
+let bpq;
 
 if(process.platform === "win32") {
     const rl = require('readline').createInterface({
@@ -91,9 +91,9 @@ process.on("SIGINT", function() {
 });
 
 function saveCache(BPQ_PATH) {
-    const cache = {
-        pq: JSON.stringify(bpq.getCacheForSave())
-    };
+    const cache = JSON.stringify({
+        pq: bpq.getCacheForSave()
+    });
 
     fs.writeFileSync(BPQ_PATH, cache);
 
@@ -203,7 +203,10 @@ async function execute(message, serverQueue) {
     // remove the command part of the string as it will lower score unecessarily
     let res = await bpq.get(message.content.substring(message.content.indexOf(' ') + 1));
     if(res) {
-        if(isDebug) console.log('DEBUG: cache match found.');
+        if(isDebug) {
+            console.log('DEBUG: cache match found.');
+            message.channel.send('DEBUG: cache match found');
+        }
         res.isCached = true;
         enqueue({items: [res]}, message, serverQueue);
         return;

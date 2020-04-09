@@ -163,7 +163,7 @@ class BalancedPriorityQueue {
         }
 
         if(sole1 && sole2) {
-            ret = fuzzySet([sole1]).get(sole2);
+            ret = fuzzySet([sole1], false).get(sole2);
             if(ret)
                 ret = ret[0][0] > 0.6;
             else
@@ -177,34 +177,39 @@ class BalancedPriorityQueue {
             sole2 = undefined;
         }
         if(sole1) {
-            let fset = fuzzySet([sole1]);
+            let fset = fuzzySet([sole1], false);
 
             if(this.debug) {
+                console.log('BPQ DEBUG: sole1 ', sole1);
                 console.log('BPQ DEBUG: sole1 title ', ot.title);
-                console.log('BPQ DEBUG: sole1 fset get ', fset.get(ot.title));
+                console.log('BPQ DEBUG: sole1 title fset get ', fset.get(ot.title));
                 console.log('BPQ DEBUG: sole1 artist ', ot.artist);
-                console.log('BPQ DEBUG: sole1 fset get ', fset.get(ot.artist));
+                console.log('BPQ DEBUG: sole1 artist fset get ', fset.get(ot.artist));
             }
 
             ts = fset.get(ot.title);
             if(ts)
                 ts = ts[0][0];
 
-            ass = fset.get(ot.artist)
+            ass = fset.get(ot.artist);
             if(ass)
                 ass = ass[0][0];
 
+            if(this.debug) {
+                console.log('BPQ DEBUG: weighted ts ', ts ? ts > ( 0.6 * ot.title.length / sole1.length ) : ts);
+                console.log('BPQ DEBUG: weighted ass ', ass ? ass > ( 0.6 * ot.title.length / sole1.length ) : ass);
+            }
+
             // weight need to account for str len (eg if short title, it might not match)
-            // weight / (title / sole string length) because we want it to increase score if
+            // weight * (title / sole string length) because we want it to increase score if
             // title is short (shorter title = smaller score)
-            // which is = weight * sole / title
-            ret = ts > ( 0.5 * sole1.length / ot.title.length ) && (!ass || ass > ( 0.5 * sole1.length / ot.title.length ));
+            ret = ts > ( 0.6 * ot.title.length / sole1.length ) && (!ass || ass > ( 0.6 * ot.title.length / sole1.length ));
             if(this.debug) console.log('BPQ DEBUG: ret ', ret);
             return ret;
         }
 
-        let titleSet = fuzzySet([testObj.title]);
-        let artistSet = fuzzySet([testObj.artist]);
+        let titleSet = fuzzySet([testObj.title], false);
+        let artistSet = fuzzySet([testObj.artist], false);
 
         ts = titleSet.get(reqObj.title);
         if(ts)
