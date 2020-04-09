@@ -129,7 +129,7 @@ client.on('message', async message => {
     }
 
     if(!message.member.voice.channel) {
-        console.log(message.member.voice.channel);
+        if(isDebug) console.log(message.member.voice.channel);
         return message.channel.send('You must be in a voice channel to send a music related command to Veda.');
     }
 
@@ -159,14 +159,14 @@ async function execute(message, serverQueue) {
         enqueue({items: [res]}, message, serverQueue);
         return;
     } else {
-        console.log('DEBUG: cannot find cache match.');
+        if(isDebug) console.log('DEBUG: cannot find cache match.');
         sendReq(args.slice(1, args.length + 1).join('+'), message, serverQueue);
     }
 
 };
 
 async function enqueue(response, message, serverQueue) {
-    console.log('Status: Enqueue.');
+    if(isDebug) console.log('DEBUG Status: Enqueue.');
 
     let results = response.items;
     if(isDebug) console.log('DEBUG: Results in enqueue ', results);
@@ -191,10 +191,10 @@ async function enqueue(response, message, serverQueue) {
         song: song
     };
 
-    console.log('Log: Server queue check');
+    if(isDebug) console.log('DEBUG Log: Server queue check');
 
     if(!serverQueue) {
-        console.log('Log: Creating server queue');
+        if(isDebug) console.log('DEBUG Log: Creating server queue');
 
         const queueContruct = {
             textChannel: message.channel,
@@ -220,10 +220,10 @@ async function enqueue(response, message, serverQueue) {
             return message.channel.send(err);
         }
     } else {
-        console.log('Log: Adding to server queue');
+        if(isDebug) console.log('DEBUG Log: Adding to server queue');
         serverQueue.songs.push(song);
         
-        if(isDebug) console.log(serverQueue.songs);
+        if(isDebug) console.log('DEBUG: serverQueue songs ', serverQueue.songs);
 
         return message.channel.send(`${song.title} has been added to the queue.`);
     }
@@ -247,7 +247,7 @@ function play(guild, song) {
         return;
     }
 
-    console.log(song.url);
+    if(isDebug) console.log('DEBUG: song url ', song.url);
     dispatcher = serverQueue.connection
         .play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }))
         .on("finish", () => {
@@ -317,9 +317,9 @@ async function wrongResult(message, serverQueue) {
 
     const song = songInfo.song;
     if(isDebug) {
-        console.log(songInfo);
-        console.log(wrongCount);
-        console.log(songInfo.results[wrongCount].id);
+        console.log('DEBUG W: song info ', songInfo);
+        console.log('DEBUG W: wrongCount ', wrongCount);
+        console.log('DEBUG W: song id ', songInfo.results[wrongCount].id);
     }
     const newSong = await getSong(message, songInfo.results[wrongCount].id.videoId, wrongCount);
     songInfo.wrongCount = wrongCount;
@@ -327,7 +327,7 @@ async function wrongResult(message, serverQueue) {
     replaceSong(song, newSong, serverQueue);
 
     if(isDebug) {
-        console.log(`old id ${song.vID} and new id ${newSong.vID}`);
+        console.log(`DEBUG W: old id ${song.vID} and new id ${newSong.vID}`);
     }
     return message.channel.send(`${song.title} replaced by ${newSong.title}`);
 };
@@ -341,13 +341,13 @@ function replaceSong(song, newSong, serverQueue) {
     const index = serverQueue.songs.map(function(e) { return song.vID; })
     .indexOf(song.vID);
     if(isDebug) {
-        console.log('DEBUG: replacing song');
-        console.log('DEBUG: Index: ', index)
-        console.log('DEBUG: old song: ', serverQueue[index]);
+        console.log('DEBUG replace: replacing song');
+        console.log('DEBUG replace: to replace index: ', index)
+        console.log('DEBUG replace: old song: ', serverQueue[index]);
     }
     serverQueue[index] = newSong;
     if(isDebug) {
-        console.log('DEBUG: new song', serverQueue[index]);
+        console.log('DEBUG replace: new song', serverQueue[index]);
     }
 };
 
