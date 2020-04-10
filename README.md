@@ -2,7 +2,7 @@
 A Discord Music bot so that I don't have to compete bandwidth with others. Eventually planned to be more than
 a music bot.
 
-v1.1
+v1.2
 
 Written by Albion Fung
 
@@ -33,6 +33,8 @@ You may freely distribute and use my code as long as your code is:
 - open source
 - credit me
 - credit above refs when using my code
+- follow the licenses of the modules used, unless you have your own replacement and do
+not use the modules I use
 - do not directly charge customers for using an application that uses this code base *
 - have this same clause for the distribution and integration of your code
 

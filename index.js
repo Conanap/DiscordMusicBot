@@ -1,5 +1,5 @@
 /*
-v1.1
+v1.2
 Written by Albion Fung
 
 Refs:
@@ -20,6 +20,8 @@ You may freely distribute and use my code as long as your code is:
 - open source
 - credit me
 - credit above refs when using my code
+- follow the licenses of the modules used, unless you have your own replacement and do
+not use the modules I use
 - do not directly charge customers for using an application that uses this code base *
 - have this same clause for the distribution and integration of your code
 
@@ -41,7 +43,8 @@ let {
     developerPrefix,
     token,
     developerToken,
-    apiKey
+    apiKey,
+    BPQ_PATH
 } = require('./config.json');
 
 const otPrefixes = ['!', '>', isDev ? prefix : developerPrefix];
@@ -54,20 +57,69 @@ const fetch = require("node-fetch");
 const url = "https://www.googleapis.com/youtube/v3/search?part=id&type=video&key=" + apiKey + "&q=";
 const vurl = "https:www.youtube.com/watch?v=";
 
-function sendReq(query, message, serverQueue, func = undefined) {
+function sendReq(query, message, serverQueue, func = undefined, argvs = undefined) {
     console.log("fetching results");
     fetch(url + query)
         .then(data=>{ return data.json();})
         .then(res=>{ if(isDebug) console.log(res);
-            func ? func(message, serverQueue) : enqueue(res, message, serverQueue);
+            if(func) {
+                if(argvs)
+                    func(res, message, serverQueue, argvs);
+                else
+                    func(res, message, serverQueue)
+            } else {
+                enqueue(res, message, serverQueue);
+            }
         });
+};
+
+const fs = require('fs');
+
+const queue = new Map();
+const BalPriorityQueue = require('./balanced-priority-queue.js');
+let bpq;
+
+if(process.platform === "win32") {
+    const rl = require('readline').createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+
+    rl.on("SIGINT", function() {
+        botState = states.EXITING;
+        process.emit("SIGINT");
+    });
+}
+
+process.on("SIGINT", function() {
+    botState = states.EXITING;
+    saveCache(BPQ_PATH);
+    process.exit();
+});
+
+function saveCache(BPQ_PATH) {
+    const cache = JSON.stringify({
+        pq: bpq.getCacheForSave()
+    });
+
+    fs.writeFileSync(BPQ_PATH, cache);
+
+    process.exit();
+};
+
+function loadCache(BPQ_PATH) {
+    let data = undefined;
+    if(fs.existsSync(BPQ_PATH))
+        data = JSON.parse(fs.readFileSync(BPQ_PATH));
+    bpq  = new BalPriorityQueue(data, isDebug);
 };
 
 const states = {
     DC: 0,
     CONNECTED: 1,
     PLAYING: 2,
-    PAUSED: 3
+    PAUSED: 3,
+    EXITING: 4,
 };
 
 let dispatcher = undefined;
@@ -86,7 +138,7 @@ botFuncs[`${prefix}UwUops`] = wongWesults;
 
 let botState = states.DC;
 
-const queue = new Map();
+loadCache(BPQ_PATH);
 
 client.once('ready', () => {
     console.log('Status: Ready');
@@ -101,18 +153,24 @@ client.once('disconnect', () => { console.log('Status: Disconnected'); botState 
 
 client.on('message', async message => {
 
-    console.log('Log: Message: ' + message.content);
+    console.log('\n\n\nLog: Message: ' + message.content);
     console.log("Log: First argument: " + message.content.split(" ")[0] + " ," + message.content.split(" ")[0].length);
 
     if(message.author.bot) return;
 
+    // ignore messages meant for other bots
     if(otPrefixes.indexOf(message.content.split(" ")[0][0]) !== -1) {
         return;
     }
 
+    // messages not meant for other bots or myself will be deleted
     if(message.content.split(" ")[0][0] !== `${prefix}`) {
         console.log('Log: Message deleted: ', message.content);
         return message.delete();
+    }
+
+    if(botState === states.EXITING) {
+        return message.channel.send('Veda is currently shutting down and cannot take any commands.');
     }
 
     if(Object.keys(botFuncs).indexOf(message.content.split(" ")[0]) === -1) {
@@ -125,7 +183,7 @@ client.on('message', async message => {
     }
 
     if(!message.member.voice.channel) {
-        console.log(message.member.voice.channel);
+        if(isDebug) console.log(message.member.voice.channel);
         return message.channel.send('You must be in a voice channel to send a music related command to Veda.');
     }
 
@@ -148,32 +206,60 @@ async function execute(message, serverQueue) {
         );
     }
 
-    sendReq(args.slice(1, args.length + 1).join('+'), message, serverQueue);
+    // get cached if possible
+    // remove the command part of the string as it will lower score unecessarily
+    let res = await bpq.get(message.content.substring(message.content.indexOf(' ') + 1));
+    if(res) {
+        if(isDebug) {
+            console.log('DEBUG: cache match found.');
+            message.channel.send('DEBUG: cache match found');
+        }
+        res.isCached = true;
+        enqueue({items: [res]}, message, serverQueue);
+        return;
+    } else {
+        if(isDebug) console.log('DEBUG: cannot find cache match.');
+        sendReq(args.slice(1, args.length + 1).join('+'), message, serverQueue);
+    }
 
 };
 
 async function enqueue(response, message, serverQueue) {
-    console.log('Status: Enqueue.');
+    if(isDebug) console.log('DEBUG Status: Enqueue.');
 
     let results = response.items;
-    if(isDebug) console.log(results);
+    if(isDebug) console.log('DEBUG: Results in enqueue ', results);
     if(!results || results.length === 0) {
         return message.channel.send('No matching query found.');
     }
 
-    const vID = results[0].id.videoId;
-    const song = await getSong(message, vID, 0);
+    // get song properties
+    let song;
+    if(results[0].isCached) {
+        song = results[0];
+        song.requester = message.author.toString();
+        song.wrongCount = 0;
+        song.message = message.content;
+    } else {
+        const vID = results[0].id.videoId;
+        song = await getSong(message, vID, 0);
+    }
 
+    if(isDebug) {
+        console.log('DEBUG: song obj in enqueue:', song);
+    }
+
+    bpq.addSong(song);
     recentRequestPerUser[song.requester] = {
         results: results,
         wrongCount: 0,
         song: song
     };
 
-    console.log('Log: Server queue check');
+    if(isDebug) console.log('DEBUG Log: Server queue check');
 
     if(!serverQueue) {
-        console.log('Log: Creating server queue');
+        if(isDebug) console.log('DEBUG Log: Creating server queue');
 
         const queueContruct = {
             textChannel: message.channel,
@@ -199,10 +285,10 @@ async function enqueue(response, message, serverQueue) {
             return message.channel.send(err);
         }
     } else {
-        console.log('Log: Adding to server queue');
+        if(isDebug) console.log('DEBUG Log: Adding to server queue');
         serverQueue.songs.push(song);
         
-        if(isDebug) console.log(serverQueue.songs);
+        if(isDebug) console.log('DEBUG: serverQueue songs ', serverQueue.songs);
 
         return message.channel.send(`${song.title} has been added to the queue.`);
     }
@@ -226,7 +312,7 @@ function play(guild, song) {
         return;
     }
 
-    console.log(song.url);
+    if(isDebug) console.log('DEBUG: song url ', song.url);
     dispatcher = serverQueue.connection
         .play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }))
         .on("finish", () => {
@@ -291,23 +377,66 @@ async function wrongResult(message, serverQueue) {
     if(!songInfo) {
         return message.channel.send('No song queued.');
     }
-    let wrongCount = songInfo.wrongCount + 1 === songInfo.results.length ?
-        0 : songInfo.wrongCount + 1;
 
-    const song = songInfo.song;
-    if(isDebug) {
-        console.log(songInfo);
-        console.log(wrongCount);
-        console.log(songInfo.results[wrongCount].id);
+    let wrongCount = 0;
+    let vID = undefined;
+    let song = songInfo.song;
+
+    if(!song.isCached) { // not cached, change as normal
+        wrongCount = songInfo.wrongCount + 1 === songInfo.results.length ?
+            0 : songInfo.wrongCount + 1;
+        songInfo.wrongCount = wrongCount;
+        vID = songInfo.results[wrongCount].id.videoId;
+        getAndSwapSong(undefined, message, serverQueue, {
+            song: song,
+            vID: vID,
+            wrongCount: wrongCount
+        });
+    } else { // cached, fetch new results
+        let args = song.message.split(" ");
+        args = args.slice(1, args.length + 1).join('+');
+        sendReq(args, message, serverQueue, getAndSwapSong, {song: song, wrongCount: wrongCount});
+        ; // fetch new one
     }
-    const newSong = await getSong(message, songInfo.results[wrongCount].id.videoId, wrongCount);
-    songInfo.wrongCount = wrongCount;
+};
+
+async function getAndSwapSong(res, message, serverQueue, argvs) {
+    const song = argvs.song;
+    const wrongCount = argvs.wrongCount;
+    let vID = argvs.vID;
+
+    if(res) {
+        const results = res.items;
+
+        if(!results || results.length === 0) {
+            return message.channel.send('Unable to retrieve alternative query result.');
+        }
+    
+        vID = results[0].id.videoId;
+    }
+
+    if(isDebug) {
+        console.log('DEBUG W: song info ', song);
+        console.log('DEBUG W: wrongCount ', wrongCount);
+        console.log('DEBUG W: song id ', vID);
+    }
+
+    const newSong = await getSong(message, vID, wrongCount);
+
+    if(res) {
+        recentRequestPerUser[song.requester] = {
+            results: res.items,
+            wrongCount: wrongCount,
+            song: newSong
+        };
+    }
 
     replaceSong(song, newSong, serverQueue);
 
     if(isDebug) {
-        console.log(`old id ${song.vID} and new id ${newSong.vID}`);
+        console.log(`DEBUG W: old id ${song.vID} and new id ${newSong.vID}`);
     }
+
     return message.channel.send(`${song.title} replaced by ${newSong.title}`);
 };
 
@@ -317,16 +446,16 @@ async function wongWesults(message, serverQueue) {
 };
 
 function replaceSong(song, newSong, serverQueue) {
-    const index = serverQueue.songs.map(function(e) {return song.vID})
+    const index = serverQueue.songs.map(function(e) { return song.vID; })
     .indexOf(song.vID);
     if(isDebug) {
-        console.log('DEBUG: replacing song');
-        console.log('DEBUG: Index: ', index)
-        console.log('DEBUG: old song: ', serverQueue[index]);
+        console.log('DEBUG replace: replacing song');
+        console.log('DEBUG replace: to replace index: ', index)
+        console.log('DEBUG replace: old song: ', serverQueue[index]);
     }
     serverQueue[index] = newSong;
     if(isDebug) {
-        console.log('DEBUG: new song', serverQueue[index]);
+        console.log('DEBUG replace: new song', serverQueue[index]);
     }
 };
 
