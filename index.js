@@ -57,12 +57,19 @@ const fetch = require("node-fetch");
 const url = "https://www.googleapis.com/youtube/v3/search?part=id&type=video&key=" + apiKey + "&q=";
 const vurl = "https:www.youtube.com/watch?v=";
 
-function sendReq(query, message, serverQueue, func = undefined) {
+function sendReq(query, message, serverQueue, func = undefined, argvs = undefined) {
     console.log("fetching results");
     fetch(url + query)
         .then(data=>{ return data.json();})
         .then(res=>{ if(isDebug) console.log(res);
-            func ? func(message, serverQueue) : enqueue(res, message, serverQueue);
+            if(func) {
+                if(argvs)
+                    func(res, message, serverQueue, argvs);
+                else
+                    func(res, message, serverQueue)
+            } else {
+                enqueue(res, message, serverQueue);
+            }
         });
 };
 
@@ -232,9 +239,14 @@ async function enqueue(response, message, serverQueue) {
         song = results[0];
         song.requester = message.author.toString();
         song.wrongCount = 0;
+        song.message = message.content;
     } else {
         const vID = results[0].id.videoId;
         song = await getSong(message, vID, 0);
+    }
+
+    if(isDebug) {
+        console.log('DEBUG: song obj in enqueue:', song);
     }
 
     bpq.addSong(song);
@@ -365,23 +377,66 @@ async function wrongResult(message, serverQueue) {
     if(!songInfo) {
         return message.channel.send('No song queued.');
     }
-    let wrongCount = songInfo.wrongCount + 1 === songInfo.results.length ?
-        0 : songInfo.wrongCount + 1;
 
-    const song = songInfo.song;
-    if(isDebug) {
-        console.log('DEBUG W: song info ', songInfo);
-        console.log('DEBUG W: wrongCount ', wrongCount);
-        console.log('DEBUG W: song id ', songInfo.results[wrongCount].id);
+    let wrongCount = 0;
+    let vID = undefined;
+    let song = songInfo.song;
+
+    if(!song.isCached) { // not cached, change as normal
+        wrongCount = songInfo.wrongCount + 1 === songInfo.results.length ?
+            0 : songInfo.wrongCount + 1;
+        songInfo.wrongCount = wrongCount;
+        vID = songInfo.results[wrongCount].id.videoId;
+        getAndSwapSong(undefined, message, serverQueue, {
+            song: song,
+            vID: vID,
+            wrongCount: wrongCount
+        });
+    } else { // cached, fetch new results
+        let args = song.message.split(" ");
+        args = args.slice(1, args.length + 1).join('+');
+        sendReq(args, message, serverQueue, getAndSwapSong, {song: song, wrongCount: wrongCount});
+        ; // fetch new one
     }
-    const newSong = await getSong(message, songInfo.results[wrongCount].id.videoId, wrongCount);
-    songInfo.wrongCount = wrongCount;
+};
+
+async function getAndSwapSong(res, message, serverQueue, argvs) {
+    const song = argvs.song;
+    const wrongCount = argvs.wrongCount;
+    let vID = argvs.vID;
+
+    if(res) {
+        const results = res.items;
+
+        if(!results || results.length === 0) {
+            return message.channel.send('Unable to retrieve alternative query result.');
+        }
+    
+        vID = results[0].id.videoId;
+    }
+
+    if(isDebug) {
+        console.log('DEBUG W: song info ', song);
+        console.log('DEBUG W: wrongCount ', wrongCount);
+        console.log('DEBUG W: song id ', vID);
+    }
+
+    const newSong = await getSong(message, vID, wrongCount);
+
+    if(res) {
+        recentRequestPerUser[song.requester] = {
+            results: res.items,
+            wrongCount: wrongCount,
+            song: newSong
+        };
+    }
 
     replaceSong(song, newSong, serverQueue);
 
     if(isDebug) {
         console.log(`DEBUG W: old id ${song.vID} and new id ${newSong.vID}`);
     }
+
     return message.channel.send(`${song.title} replaced by ${newSong.title}`);
 };
 

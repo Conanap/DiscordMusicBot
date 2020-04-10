@@ -37,6 +37,9 @@ class BalancedPriorityQueue {
         if(index !== -1) {
             this.pq[index].pCount += 1;
             this.pq[index].lastPlayed = currTime + this.DAY;
+            this.pq[index].message = song.message;
+
+            if(this.debug) console.log('BPQ DEBUG: pq @index', this.pq[index]);
             this.reshuffle();
             return;
         }
