@@ -1,5 +1,5 @@
 /*
-v1.2.2
+v1.2.3
 Written by Albion Fung
 
 Refs:
@@ -233,9 +233,46 @@ async function execute(message, serverQueue) {
         );
     }
 
+    let res;
+
+    // check if it's just a url
+    if(validURL(args[1])) {
+        // url, no need to fetch
+        if(isDebug) {
+            console.log('DEBUG: Given a URL:', args[1]);
+        }
+
+        if(!args[1].includes('youtube')) {
+            if(isDebug) console.log('Non-youtube link');
+
+            return message.channel.send('Only non-shortened Youtube links are accepted');
+        }
+
+        // pass to enqueue
+        // need vID?
+        let url = args[1];
+        let vidSub = url.split('v=')[1];
+        let ampPos = vidSub.indexOf('&');
+        let vID = ampPos !== -1 ? vidSub.substring(0, amPos) : vidSub;
+        let song = {
+            id: { videoId: vID }
+        };
+
+        res = bpq.getWithVID(vID);
+        if(res) {
+            res.isCached = true;
+            res = {items: [res] };
+        }
+        else
+            res = {items: [song]};
+
+        enqueue(res, message, serverQueue);
+        return;
+    }
+
     // get cached if possible
     // remove the command part of the string as it will lower score unecessarily
-    let res = await bpq.get(message.content.substring(message.content.indexOf(' ') + 1));
+    res = await bpq.get(message.content.substring(message.content.indexOf(' ') + 1));
     if(res) {
         if(isDebug) {
             console.log('DEBUG: cache match found.');
@@ -244,10 +281,11 @@ async function execute(message, serverQueue) {
         res.isCached = true;
         enqueue({items: [res]}, message, serverQueue);
         return;
-    } else { // not cached, have to fetch from youtube.
-        if(isDebug) console.log('DEBUG: cannot find cache match.');
-        sendReq(args.slice(1, args.length + 1).join('+'), message, serverQueue);
     }
+    
+    // not cached, have to fetch from youtube.
+    if(isDebug) console.log('DEBUG: cannot find cache match.');
+    sendReq(args.slice(1, args.length + 1).join('+'), message, serverQueue);
 
 };
 
@@ -544,6 +582,18 @@ async function getSong(message, vID, resultID) {
     };
 
     return song;
+};
+
+// courtesy of
+// https://stackoverflow.com/questions/5717093/check-if-a-javascript-string-is-a-url
+function validURL(str) {
+    var pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
+      '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
+      '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
+      '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
+      '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
+      '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+    return !!pattern.test(str);
 };
 
 // help

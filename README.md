@@ -2,7 +2,7 @@
 A Discord Music bot so that I don't have to compete bandwidth with others. Eventually planned to be more than
 a music bot.
 
-v1.2.2
+v1.2.3
 
 Written by Albion Fung
 
