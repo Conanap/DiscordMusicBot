@@ -1,5 +1,5 @@
 /*
-v1.2.1
+v1.2.2
 Written by Albion Fung
 
 Refs:
@@ -136,6 +136,8 @@ botFuncs[`${prefix}resume`] = botFuncs[`${prefix}r`] = resume;
 botFuncs[`${prefix}oops`] = botFuncs[`${prefix}o`] = wrongResult;
 botFuncs[`${prefix}UwUops`] = wongWesults;
 botFuncs[`${prefix}queue`] = botFuncs[`${prefix}q`] = listQueue;
+botFuncs[`${prefix}remove`] = botFuncs[`${prefix}rm`] = removeFromQueue;
+botFuncs[`${prefix}clear`] = botFuncs[`${prefix}clr`] = botFuncs[`${prefix}l`] = clearQueue;
 
 let botState = states.DC;
 
@@ -384,6 +386,26 @@ function listQueue(message, serverQueue) {
 use \`${prefix}remove NUMBER\` to remove NUMBERth item from queue.
     `;
     return message.channel.send(ret);
+};
+
+function removeFromQueue(message, serverQueue) {
+    let num = message.content.split(" ")[1];
+
+    if(isNaN(num) || parseInt(num) >= serverQueue.songs.length) {
+        return message.channel.send('Invalid selection ' + num);
+    }
+
+    num = parseInt(num);
+    let title = serverQueue.songs[num].title;
+    let numth = num === 1 ? 'st' : (num === 2 ? 'nd' : (num === 3 ? 'rd' : 'th'));
+    serverQueue.songs.splice(num, 1);
+
+    return message.channel.send(`Removed ${num}${numth} entry: ${title} in the queue.`);
+};
+
+function clearQueue(message, serverQueue) {
+    serverQueue.songs = [];
+    return message.channel.send(`${message.author.toString()} cleared the queue.`);
 };
 
 async function wrongResult(message, serverQueue) {
