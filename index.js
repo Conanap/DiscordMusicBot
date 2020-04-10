@@ -1,5 +1,5 @@
 /*
-v1.2
+v1.2.1
 Written by Albion Fung
 
 Refs:
@@ -500,20 +500,23 @@ Documentation notes:
     - \`...\` denotes a command.
 
 These are the available commands:
-    - play NAME: search Youtube for NAME and play the top result.
-    - play URL: go to Youtube URL and play that video.
-    - resume: resumes playback.
-    - skip: skip current song.
-    - help: shows this help message.
-    - oops: search for the next best result for **your** last query if songbot queues the wrong song. Only works before it's played.
+    - play NAME     search Youtube for NAME and play the top result.
+    - play URL      go to Youtube URL and play that video.
+    - resume        resumes playback.
+    - skip          skip current song.
+    - queue         display songs in the queue.
+    - oops          search for the next best result for **your** last query if songbot queues the wrong song. Only works before it's played.
+    - help          shows this help message.
 
 Shorthands (If you get confused, use above full commands):
-    - p NAME: same as \`play NAME\`.
-    - p: resume or pause music.
-    - r: resumes playback.
-    - s: same as \`skip\`.
-    - h: same as \`help\`.
-    - o: same as \`wrong\`.
+    - p NAME        same as \`play NAME\`.
+    - p URL         same as \`play URL\`.
+    - p             toggles music playback.
+    - r             same as \`resume\`.
+    - s             same as \`skip\`.
+    - q             same as \`queue\`.
+    - o             same as \`wrong\`.
+    - h             same as \`help\`.
 `;
 
     return message.channel.send(helpMsg);
