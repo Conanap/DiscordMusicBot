@@ -11,6 +11,7 @@ Current Features:
 - Pause, skip, resume
 - Fix incorrectly queued songs from the bot by going through other query results
 - Shorthand commands for all commands
+- A cache to keep the 100 most played song data, based on # of plays and recency. Reduces # of API calls
 
 Upcoming Features:
 Please see issues board.
