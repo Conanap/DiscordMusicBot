@@ -67,6 +67,8 @@ class BalancedPriorityQueue {
     };
 
     recalculate(currTime) {
+        // for ea cached song
+        // remove count based on time passed
         for(let i = 0; i < this.pq.length; i++) {
             pq[i].pCount = Math.floor(pq[i].pCount * this.formula(this.pq[i].lastPlayed, currTime));
         }
@@ -81,10 +83,12 @@ class BalancedPriorityQueue {
     };
 
     reshuffle() {
+        // ie resort it into a proper priority queue
         this.pq.sort((a, b) => b.pCount - a.pCount);
     };
 
-    get(title) {
+    get(title) { // given title, we find the closest match
+        // TODO: return highest # instead of first
         let index = this.pq.findIndex(x => this.isMatch(title, x.title));
         if(this.debug) {
             console.log('BPQ DEBUG: cache index ', index);
@@ -100,6 +104,7 @@ class BalancedPriorityQueue {
         let reqObj = {};
         let testObj = {};
 
+        // removing stuff in brackets, hopefully just one
         if(testing.indexOf('(') !== -1) {
             testing = testing.replace(
                 testing.substring(testing.indexOf('('),
@@ -114,6 +119,9 @@ class BalancedPriorityQueue {
                 "");
         }
 
+        // split at -
+        // noticed that before was always artist, after was
+        // always title
         if(testing.indexOf('-') !== -1) {
             testObj.title = testing.split('-')[1];
             testObj.artist = testing.split('-')[0];
@@ -135,6 +143,7 @@ class BalancedPriorityQueue {
             reqObj.sole = request;
         }
 
+        // match to best of our ability
         return this.fuzzyStringMatch(reqObj, testObj);
     };
 
@@ -165,6 +174,7 @@ class BalancedPriorityQueue {
             console.log('BPQ DEBUG: ');
         }
 
+        // both strings couldn't be split; best of luck!
         if(sole1 && sole2) {
             ret = fuzzySet([sole1], false).get(sole2);
             if(ret)
@@ -175,11 +185,11 @@ class BalancedPriorityQueue {
             if(this.debug) console.log('BPQ DEBUG: ret ', ret);
             return ret;
         }
-        if(sole2) {
+        if(sole2) { // if we have sole 2, then sole 1 dne. can move it over.
             sole1 = sole2;
             sole2 = undefined;
         }
-        if(sole1) {
+        if(sole1) { // sole1 is the longer string, it's the sole input from that side.
             let fset = fuzzySet([sole1], false);
 
             if(this.debug) {
