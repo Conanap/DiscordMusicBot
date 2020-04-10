@@ -97,6 +97,15 @@ class BalancedPriorityQueue {
         return this.pq[index];
     };
 
+    getWithVID(vID) {
+        let index = this.pq.findIndex(x => x.id.videoId === vID);
+        if(this.debug) {
+            console.log('BPQ DEBUG: vID index ', index);
+            console.log('BPQ DEBUG: vID cache ', this.pq[index]);
+        }
+        return this.pq[index];
+    };
+
     isMatch(request, testing) {
         request = request.toUpperCase();
         testing = testing.toUpperCase();
