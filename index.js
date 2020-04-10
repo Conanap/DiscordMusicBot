@@ -610,27 +610,27 @@ Documentation notes:
     - \`...\` denotes a command.
 
 These are the available commands:
-    - play NAME     search Youtube for NAME and play the top result.
-    - play URL      go to Youtube URL and play that video.
-    - resume        resumes playback.
-    - skip          skip current song.
-    - queue         display songs in the queue.
-    - remove NUM    remove NUMth song on the queue.
-    - clear         clears the entire queue - careful, you'll get called out.
-    - oops          search for the next best result for **your** last query if songbot queues the wrong song. Only works before it's played.
-    - help          shows this help message.
+    - play NAME: search Youtube for NAME and play the top result.
+    - play URL: go to Youtube URL and play that video.
+    - resume: resumes playback.
+    - skip: skip current song.
+    - queue: display songs in the queue.
+    - remove NUM: remove NUMth song on the queue.
+    - clear: clears the entire queue - careful, you'll get called out.
+    - oops: search for the next best result for **your** last query if songbot queues the wrong song. Only works before it's played.
+    - help: shows this help message.
 
 Shorthands (If you get confused, use above full commands):
-    - p NAME        same as \`play NAME\`.
-    - p URL         same as \`play URL\`.
-    - p             toggles music playback.
-    - r             same as \`resume\`.
-    - s             same as \`skip\`.
-    - q             same as \`queue\`.
-    - rm            same as \`remove\`.
-    - clr           same as \`clear\`.
-    - o             same as \`wrong\`.
-    - h             same as \`help\`.
+    - p NAME: same as \`play NAME\`.
+    - p URL: same as \`play URL\`.
+    - p: toggles music playback.
+    - r: same as \`resume\`.
+    - s: same as \`skip\`.
+    - q: same as \`queue\`.
+    - rm: same as \`remove\`.
+    - clr: same as \`clear\`.
+    - o: same as \`oops\`.
+    - h: same as \`help\`.
 `;
 
     return message.channel.send(helpMsg);
