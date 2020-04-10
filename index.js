@@ -135,6 +135,7 @@ botFuncs[`${prefix}skip`] = botFuncs[`${prefix}s`] = skip;
 botFuncs[`${prefix}resume`] = botFuncs[`${prefix}r`] = resume;
 botFuncs[`${prefix}oops`] = botFuncs[`${prefix}o`] = wrongResult;
 botFuncs[`${prefix}UwUops`] = wongWesults;
+botFuncs[`${prefix}queue`] = botFuncs[`${prefix}q`] = listQueue;
 
 let botState = states.DC;
 
@@ -372,6 +373,19 @@ function resume(message, serverQueue) {
     return serverQueue.textChannel.send('Error: Unable to complete action. Please report this to the administrator: Dispatcher not found.');
 }
 
+function listQueue(message, serverQueue) {
+    let ret = 'Current queue:\n';
+
+    for(let i in serverQueue.songs) {
+        ret += `${i}. ${serverQueue.songs[i].title}\n`;
+    }
+
+    ret += `
+use \`${prefix}remove NUMBER\` to remove NUMBERth item from queue.
+    `;
+    return message.channel.send(ret);
+};
+
 async function wrongResult(message, serverQueue) {
     let songInfo = recentRequestPerUser[message.author.toString()];
     if(!songInfo) {
@@ -396,7 +410,6 @@ async function wrongResult(message, serverQueue) {
         let args = song.message.split(" ");
         args = args.slice(1, args.length + 1).join('+');
         sendReq(args, message, serverQueue, getAndSwapSong, {song: song, wrongCount: wrongCount});
-        ; // fetch new one
     }
 };
 
@@ -479,7 +492,7 @@ function help (message, serverQueue) {
 `Hello! I am Veda. These are my current functionalities:
     - Play music.
 
-My command prefix is '-'.
+My command prefix is \`${prefix}\`.
 
 Documentation notes:
     - [...] denotes optional arguments.
