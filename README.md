@@ -28,6 +28,7 @@ Reqs: Make sure to have a file config.json in the project's root folder. It must
 - token for the bot
 - developerToken for the testing bot (can be the same as above token if not using a test bot)
 - API Key for Youtube API v3
+- Path to save cache JSON file
 
 You may freely distribute and use my code as long as your code is:
 - open source
@@ -47,6 +48,18 @@ You may freely distribute and use my code as long as your code is:
    
 __________________________________________________________________________________________________________
 Change Log:
+   v1.2.3 - 10 Apr, 2020
+   - Queries with URLs passed as an argument no longer sends a GET request to YouTube API v3. 
+   
+   v1.2.2 - 9 Apr, 2020
+   - Remove song from queue and clear queue can now be done. 
+   - Added some much needed comments.
+    
+   v1.2.1 - 9 Apr, 2020
+   - List queue feature added. 
+   
+   v1.2 - 9 Apr, 2020
+   - Implemented a caching functionality to reduce the number of API calls to YouTube API v3. 
    
    v1.1 - 8 Apr, 2020
    - Allow users to select the next best result from their last query if the songbot didn't pick the right one.
