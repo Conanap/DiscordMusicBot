@@ -57,7 +57,7 @@ isDev ? client.login(developerToken) : client.login(token);
 
 const fetch = require("node-fetch");
 const url = "https://www.googleapis.com/youtube/v3/search?part=id&type=video&key=" + apiKey + "&q=";
-const vurl = "https:www.youtube.com/watch?v=";
+const vurl = "https://www.youtube.com/watch?v=";
 
 // send html request to Youtube API
 // Ik it's written in a sketchy way LOL so
@@ -152,6 +152,7 @@ botFuncs[`${prefix}UwUops`] = wongWesults;
 botFuncs[`${prefix}queue`] = botFuncs[`${prefix}q`] = listQueue;
 botFuncs[`${prefix}remove`] = botFuncs[`${prefix}rm`] = removeFromQueue;
 botFuncs[`${prefix}clear`] = botFuncs[`${prefix}clr`] = botFuncs[`${prefix}l`] = clearQueue;
+botFuncs[`${prefix}playing`] = botFuncs[`${prefix}np`] = nowPlaying;
 
 // start at dc'd
 let botState = states.DC;
@@ -304,7 +305,7 @@ async function enqueue(response, message, serverQueue) {
     let song;
     if(results[0].isCached) { // cached: we can just build the song obj
         song = results[0];
-        song.requester = message.author.toString();
+        song.requester = message.author.username;
         song.wrongCount = 0;
         song.message = message.content;
     } else { // not cached: just get it from ytdl
@@ -381,6 +382,7 @@ function play(guild, song) {
     if(!song) {
         serverQueue.voiceChannel.leave();
         queue.delete(guild.id);
+        dispatcher = undefined;
         return;
     }
 
@@ -389,6 +391,7 @@ function play(guild, song) {
         .play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }))
         .on("finish", () => { // when song is finished
             serverQueue.songs.shift();
+            currentSong = undefined;
             play(guild, serverQueue.songs[0]);
         })
         .on("error", error => console.error(error));
@@ -509,6 +512,56 @@ async function wrongResult(message, serverQueue) {
     }
 };
 
+async function nowPlaying(message, serverQueue) {
+    if(!currentSong) {
+        return message.channel.send(`Not playing anything.`);
+    }
+
+    if(!currentSong.duration) {
+        if(isDebug) console.log('DEBUG NP: updating song duration, not in cache.');
+        let info = await ytdl.getBasicInfo(vurl + currentSong.vID);
+        bpq.update(currentSong.vID, 'duration', info.length_seconds);
+        currentSong.duration = info.length_seconds;
+    }
+
+    let durStr = getTimeString(currentSong.duration);
+    let played = '';
+
+    if(dispatcher) {
+        played = getTimeString(dispatcher.streamTime, true);
+        played += "/";
+    }
+
+    return message.channel.send({
+        embed: {
+            color: 3447003,
+            title: currentSong.title,
+            url: vurl + currentSong.vID,
+            description: `${played}${durStr}\nRequested by ${currentSong.requester}`
+        }
+    });
+};
+
+function getTimeString(seconds, isMili=false) {
+    if(isMili) seconds = Math.round(seconds / 1000);
+
+    let min = Math.floor(seconds / 60);
+    let sec = seconds - (min * 60);
+    let hour = '';
+
+    if(min >= 60) {
+        hour = Math.floor(min / 60);
+        min = min - hour * 60;
+    }
+
+    if(min < 10) min = '0' + min;
+    if(sec < 10) sec = '0' + sec;
+
+    if(hour && hour < 10) hour = '0' + hour;
+    if(hour) hour += ':'
+    return `${hour}${min}:${sec}`;
+};
+
 async function getAndSwapSong(res, message, serverQueue, argvs) {
     const song = argvs.song;
     const wrongCount = argvs.wrongCount;
@@ -573,12 +626,14 @@ function replaceSong(song, newSong, serverQueue) {
 async function getSong(message, vID, resultID) {
     console.log('Log: Getting video from vID ' + vID);
     const songInfo = await ytdl.getInfo(vurl + vID);
+    if(isDebug) console.log('DEBUG: get song song info', songInfo.length_seconds);
     const song = {
         title: songInfo.title,
         url: songInfo.video_url,
         vID: vID,
         requester: message.author.toString(),
-        wrongCount: resultID
+        wrongCount: resultID,
+        duration: songInfo.length_seconds
     };
 
     return song;
