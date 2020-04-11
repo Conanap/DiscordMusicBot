@@ -1,5 +1,5 @@
 /*
-v1.2.3
+v1.3
 Written by Albion Fung
 
 Refs:
@@ -517,7 +517,8 @@ async function nowPlaying(message, serverQueue) {
         return message.channel.send(`Not playing anything.`);
     }
 
-    if(!currentSong.duration) {
+    if(!currentSong.duration) { // older cache won't have duration
+        // we need to fetch that for it
         if(isDebug) console.log('DEBUG NP: updating song duration, not in cache.');
         let info = await ytdl.getBasicInfo(vurl + currentSong.vID);
         bpq.update(currentSong.vID, 'duration', info.length_seconds);
@@ -532,7 +533,7 @@ async function nowPlaying(message, serverQueue) {
         played += "/";
     }
 
-    return message.channel.send({
+    return message.channel.send({ // this sends an embedded msg
         embed: {
             color: 3447003,
             title: currentSong.title,
@@ -665,25 +666,28 @@ Documentation notes:
     - \`...\` denotes a command.
 
 These are the available commands:
+    - play URL: go to Youtube URL and play that video. **PREFERRED.**
     - play NAME: search Youtube for NAME and play the top result.
-    - play URL: go to Youtube URL and play that video.
     - resume: resumes playback.
     - skip: skip current song.
     - queue: display songs in the queue.
     - remove NUM: remove NUMth song on the queue.
     - clear: clears the entire queue - careful, you'll get called out.
+    - playing: show what is being played, its progress and its link.
     - oops: search for the next best result for **your** last query if songbot queues the wrong song. Only works before it's played.
     - help: shows this help message.
 
 Shorthands (If you get confused, use above full commands):
+    - p URL: same as \`play URL\`. **PREFERRED.**
     - p NAME: same as \`play NAME\`.
-    - p URL: same as \`play URL\`.
     - p: toggles music playback.
     - r: same as \`resume\`.
     - s: same as \`skip\`.
     - q: same as \`queue\`.
     - rm: same as \`remove\`.
     - clr: same as \`clear\`.
+    - l: same as \`clear\`.
+    - np: same as \`playing\`.
     - o: same as \`oops\`.
     - h: same as \`help\`.
 `;

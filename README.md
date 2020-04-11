@@ -2,7 +2,7 @@
 A Discord Music bot so that I don't have to compete bandwidth with others. Eventually planned to be more than
 a music bot.
 
-v1.2.3
+v1.3
 
 Written by Albion Fung
 
@@ -11,6 +11,7 @@ Current Features:
 - Pause, skip, resume
 - Fix incorrectly queued songs from the bot by going through other query results
 - List songs in queue, remove songs from queue, clearing the queue
+- Show now playing
 - Shorthand commands for all commands
 - A cache to keep the 100 most played song data, based on # of plays and recency. Reduces # of API calls
 
@@ -52,6 +53,9 @@ not use the modules I use
    
 __________________________________________________________________________________________________________
 Change Log:
+   v1.3 - 10 Apr, 2020
+   - Implemented a Now Playing command.
+
    v1.2.3 - 10 Apr, 2020
    - Queries with URLs passed as an argument no longer sends a GET request to YouTube API v3. 
    
