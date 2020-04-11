@@ -100,10 +100,30 @@ class BalancedPriorityQueue {
     getWithVID(vID) {
         let index = this.pq.findIndex(x => x.id.videoId === vID);
         if(this.debug) {
-            console.log('BPQ DEBUG: vID index ', index);
-            console.log('BPQ DEBUG: vID cache ', this.pq[index]);
+            console.log('BPQ DEBUG getWithVID: vID index ', index);
+            console.log('BPQ DEBUG getWithVID: vID cache ', this.pq[index]);
         }
         return this.pq[index];
+    };
+
+    update(vID, fieldName, fieldVal) {
+        let index = this.pq.findIndex(x => x.id.videoId === vID);
+        if(this.debug) {
+            console.log('BPQ DEBUG update: vid', vID);
+            console.log('BPQ DEBUG update: vID index', index);
+            console.log('BPQ DEBUG update: vID cache', this.pq[index]);
+        }
+
+        if(index === -1)
+            return false;
+        
+        this.pq[index][fieldName] = fieldVal;
+
+        if(this.debug) {
+            console.log('BPQ DEBUG: updated obj', this.pq[index]);
+        }
+
+        return true;
     };
 
     isMatch(request, testing) {
