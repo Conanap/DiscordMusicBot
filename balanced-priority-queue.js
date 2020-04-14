@@ -127,6 +127,10 @@ class BalancedPriorityQueue {
     };
 
     isMatch(request, testing) {
+        if(this.debug) {
+            console.log('BPQ DEBUG: isMatch request', request);
+            console.log('BPQ DEBUG: isMatch testing', testing);
+        }
         request = request.toUpperCase();
         testing = testing.toUpperCase();
 
@@ -165,13 +169,17 @@ class BalancedPriorityQueue {
         if(request.indexOf('-') !== -1) {
             reqObj.title = request.split('-')[1];
             reqObj.artist = request.split('-')[0];
-        } else if (testing.indexOf('BY') !== -1) {
-            reqObj.title = testing.split('BY')[0];
-            reqObj.artist = testing.split('BY')[1];
+        } else if (request.indexOf('BY') !== -1) {
+            reqObj.title = request.split('BY')[0];
+            reqObj.artist = request.split('BY')[1];
         } else {
             reqObj.sole = request;
         }
 
+        if(this.debug) {
+            console.log('BPQ DEBUG: isMatch reqObj', reqObj);
+            console.log('BPQ DEBUG: isMatch testObj', testObj);
+        }
         // match to best of our ability
         return this.fuzzyStringMatch(reqObj, testObj);
     };
@@ -183,6 +191,8 @@ class BalancedPriorityQueue {
         let ret = undefined;
         let ts = undefined;
         let ass = undefined;
+
+        if(this.debug) console.log('BPQ DEBUG: Fuzzy string match');
 
         if(reqObj.sole) {
             sole1 = reqObj.sole;
@@ -200,7 +210,6 @@ class BalancedPriorityQueue {
             console.log('BPQ DEBUG: ot ', ot);
             console.log('BPQ DEBUG: reqObj ', reqObj);
             console.log('BPQ DEBUG: testObj ', testObj);
-            console.log('BPQ DEBUG: ');
         }
 
         // both strings couldn't be split; best of luck!
