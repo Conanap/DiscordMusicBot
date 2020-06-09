@@ -2,7 +2,7 @@
 A Discord Music bot so that I don't have to compete bandwidth with others. Eventually planned to be more than
 a music bot.
 
-v1.3
+v1.3.1
 
 Written by Albion Fung
 
@@ -50,9 +50,18 @@ not use the modules I use
    
    Note: highWaterMark in ytdl's call gives it 32MB of buffer. If that's too much, please change it
    manually for your use case.
+
+Contributors:
+- Conanap
+- cf-law 
    
 __________________________________________________________________________________________________________
 Change Log:
+
+   v1.3.1 - 9 June, 2020
+   - Refactored 'message' part of code, added list for non-music related commands that should work
+   without bot in voice channel.
+
    v1.3 - 10 Apr, 2020
    - Implemented a Now Playing command.
 
