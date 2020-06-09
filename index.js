@@ -155,7 +155,7 @@ botFuncs[`${prefix}clear`] = botFuncs[`${prefix}clr`] = botFuncs[`${prefix}l`] =
 botFuncs[`${prefix}playing`] = botFuncs[`${prefix}np`] = nowPlaying;
 
 // non music related commands
-let notMusic = ["help"];
+let notMusic = ["help", "h"];
 
 
 // start at dc'd
