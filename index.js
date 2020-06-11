@@ -177,9 +177,8 @@ client.once('disconnect', () => { console.log('Status: Disconnected'); botState 
 client.on('message', async message => {
 
     
-
-    console.log('\n\n\nLog: Message: ' + message.content);
     let cmd = message.content.split(" ")[0];
+    console.log('\n\n\nLog: Message: ' + message.content);
     console.log("Log: First argument: " + cmd + " ," + cmd.length);
 
     // ignore messages from other bots
@@ -209,14 +208,14 @@ client.on('message', async message => {
 
     // if help is requested, don't need to be in a voice channel
     // TODO: fix it so it doesn't check for just 2 commands
-    if(message.content === `${prefix}h` || message.content === `${prefix}help`) {
-        return help(message, undefined);
+    if(!notMusic.includes(cmd)) {
+        return botFuncs[cmd](message, undefined);
     }
 
     // can't send music bot commands without being in a voice channel
-    if(!message.member.voice.channel && !(notMusic.includes(cmd))) {
-        if(isDebug) console.log(message.member.voice.channel);
-        return message.channel.send('You must be in a voice channel to send a music related command to Veda.');
+    if(!message.member.voice.channel) {
+            if(isDebug) console.log(message.member.voice.channel);
+            return message.channel.send('You must be in a voice channel to send a music related command to Veda.');
     }
 
     console.log("Log: command: " + cmd);
