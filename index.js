@@ -154,6 +154,10 @@ botFuncs[`${prefix}remove`] = botFuncs[`${prefix}rm`] = removeFromQueue;
 botFuncs[`${prefix}clear`] = botFuncs[`${prefix}clr`] = botFuncs[`${prefix}l`] = clearQueue;
 botFuncs[`${prefix}playing`] = botFuncs[`${prefix}np`] = nowPlaying;
 
+// non music related commands
+let notMusic = ["help", "h"];
+
+
 // start at dc'd
 let botState = states.DC;
 
@@ -172,19 +176,21 @@ client.once('disconnect', () => { console.log('Status: Disconnected'); botState 
 
 client.on('message', async message => {
 
+    
+    let cmd = message.content.split(" ")[0];
     console.log('\n\n\nLog: Message: ' + message.content);
-    console.log("Log: First argument: " + message.content.split(" ")[0] + " ," + message.content.split(" ")[0].length);
+    console.log("Log: First argument: " + cmd + " ," + cmd.length);
 
     // ignore messages from other bots
     if(message.author.bot) return;
 
     // ignore messages meant for other bots
-    if(otPrefixes.indexOf(message.content.split(" ")[0][0]) !== -1) {
+    if(otPrefixes.indexOf(cmd[0]) !== -1) {
         return;
     }
 
     // messages not meant for other bots or myself will be deleted
-    if(message.content.split(" ")[0][0] !== `${prefix}`) {
+    if(cmd[0] !== `${prefix}`) {
         console.log('Log: Message deleted: ', message.content);
         return message.delete();
     }
@@ -195,15 +201,15 @@ client.on('message', async message => {
     }
 
     // check if the commands are valid
-    if(Object.keys(botFuncs).indexOf(message.content.split(" ")[0]) === -1) {
-        console.log('Error: Unrecognized command: ', message.content.split(" ")[0]);
-        return message.channel.send('Unrecognized command: ' + message.content.split(" ")[0]);
+    if(Object.keys(botFuncs).indexOf(cmd) === -1) {
+        console.log('Error: Unrecognized command: ', cmd);
+        return message.channel.send('Unrecognized command: ' + cmd);
     }
 
     // if help is requested, don't need to be in a voice channel
     // TODO: fix it so it doesn't check for just 2 commands
-    if(message.content === `${prefix}h` || message.content === `${prefix}help`) {
-        return help(message, undefined);
+    if(!notMusic.includes(cmd)) {
+        return botFuncs[cmd](message, undefined);
     }
 
     // can't send music bot commands without being in a voice channel
@@ -212,11 +218,11 @@ client.on('message', async message => {
         return message.channel.send('You must be in a voice channel to send a music related command to Veda.');
     }
 
-    console.log("Log: command: " + message.content.split(" ")[0]);
+    console.log("Log: command: " + cmd);
 
     const serverQueue = queue.get(message.guild.id);
     // call the relevant function for the command
-    botFuncs[message.content.split(" ")[0]](message, serverQueue);
+    botFuncs[cmd](message, serverQueue);
 });
 
 // this is run when they queue a song to play
