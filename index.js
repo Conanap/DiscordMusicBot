@@ -214,8 +214,8 @@ client.on('message', async message => {
 
     // can't send music bot commands without being in a voice channel
     if(!message.member.voice.channel) {
-            if(isDebug) console.log(message.member.voice.channel);
-            return message.channel.send('You must be in a voice channel to send a music related command to Veda.');
+        if(isDebug) console.log(message.member.voice.channel);
+        return message.channel.send('You must be in a voice channel to send a music related command to Veda.');
     }
 
     console.log("Log: command: " + cmd);
