@@ -4,7 +4,7 @@
   "description": "A Discord Music bot so that I don't have to compete bandwidth with others.",
   "main": "index.js",
   "dependencies": {
-    "@discordjs/opus": "^0.1.0",
+    "@discordjs/opus": "^0.8.0",
     "discord.js": "^12.1.1",
     "ffmpeg-binaries": "^4.0.0",
     "fuzzyset.js": "0.0.91",
